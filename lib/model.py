@@ -15,20 +15,29 @@ class model():
         self.X = X
         
     def predict_exp(self,theta,e=None):
+        
+        #Predict using exp input
         return self.predict(np.exp(theta),e)
     
     def predict(self,theta,e=None):
         
+        #Get the intputs
         X = self.X
         
+        #If just the e-the experiement is requested
         if e is not None: 
             X = X[e]
         
+        #get the expponents 
         exponents = theta.T[-2:]
+        
+        #Get the factor
         factor = theta.T[0].T
         
+        #Predict
         pred = factor * np.exp(np.log(X) @ exponents)
         
+        #Return squeezeed
         return np.squeeze(pred)
 
         

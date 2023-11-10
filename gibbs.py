@@ -21,7 +21,9 @@ from lib.stats import norm
 nsteps = 5000
 
 #Default values
-default = np.log(np.array([2.5e-3,1.,.4]))
+default = np.log(
+    np.array([0.00397991, 0.98612586, 0.41062651])
+    )
 
 #Data and the model 
 data_object = data()
@@ -33,7 +35,7 @@ model_object = model(
 
 #Likelihoods with observations and meas_unc
 likes = [
-    norm(loc = loc, scale = 0.01*loc) for loc in data_object.y
+    norm(loc = loc, scale = 1e-6) for loc in data_object.y
     ]
 
 #%%
@@ -45,23 +47,16 @@ ndim = 3
 
 #Hyper parameters
 loc = default
-scale = np.ones(3)*0.01
-
 
 #Random generator 
 rng = np.random.mtrand.RandomState()
 
 #Xvalues
-X = rng.randn(nexp,ndim)*1e-5 * default
+X = rng.randn(nexp,ndim)*1e-10 + default
 
 #Proposal_scales, subject to tuning later
 
 scale = np.array([0.015,0.0012,0.0025])
-scale = np.ones(3) * 0.001
-
-scale_X = scale
-scale_scale = scale
-scale_loc = scale
 
 #Candidate vector, initialize before loop for speed
 X_cand = np.ones(3)
@@ -69,6 +64,16 @@ X_cand = np.ones(3)
 Xs = np.empty((nsamp,nexp,ndim))
 locs = np.empty((nsamp,ndim))
 scales = np.empty((nsamp,ndim))
+
+locs[:] = loc
+scales[:] = np.array([.1,0.001,0.0001])
+
+
+
+scale_X = np.array([.1,0.001,0.0001])
+scale_scale = np.array([.1,0.001,0.0001])
+scale_loc = np.array([.1,0.001,0.0001])
+
 
 #The outer loop
 for s in tqdm(np.arange(nsamp)):
@@ -109,7 +114,7 @@ for s in tqdm(np.arange(nsamp)):
             logu = np.log(rng.rand())
             
             #If logdiff greater, accept
-            if logdiff > logu:
+            if logu < logdiff:
                 X[e,:] = X_cand
                 
                 
@@ -128,7 +133,7 @@ for s in tqdm(np.arange(nsamp)):
         logdiff = log_sig_cand - log_sig
         
         #If logdiff greater, accept
-        if logdiff > logu:
+        if logu < logdiff:
             scale[d] = scale_cand
         
         loc_cand = loc[d] + rng.rand() * scale_loc[d]
@@ -146,7 +151,7 @@ for s in tqdm(np.arange(nsamp)):
         logdiff = log_loc_cand - log_loc
         
         #If logdiff greater, accept
-        if logdiff > logu:
+        if logu < logdiff:
             loc[d] = loc_cand
             
     scales[s,:] = scale
@@ -156,10 +161,12 @@ for s in tqdm(np.arange(nsamp)):
     
 #%%
 
-pred = model_object.predict_exp(np.concatenate(Xs)[-500:])
+l = np.linspace(0,400)
+
+pred = model_object.predict_exp(np.concatenate(Xs))
 
 mean_pred = pred.mean(axis=1)
-mean_pred = model_object.predict_exp(default)
+# mean_pred = model_object.predict(default)
 std_pred = pred.std(axis=1)
 
 plt.errorbar(
@@ -168,3 +175,20 @@ plt.errorbar(
     yerr = std_pred,
     fmt= 'o'
     )
+
+plt.plot(l,l)
+
+#%%
+l = np.linspace(0,400)
+
+pred = model_object.predict_exp(np.concatenate(Xs))
+
+mean_pred = pred.mean(axis=1)
+std_pred = pred.std(axis=1)
+
+plt.plot(
+    data_object.y,
+    mean_pred+2*std_pred,
+    'o'
+    )
+plt.plot(l,l)

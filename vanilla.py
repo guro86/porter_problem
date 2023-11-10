@@ -19,6 +19,8 @@ import pandas as pd
 nwalkers = 6
 ndim = 3
 
+scale_exp = 0.03
+
 nsteps = 5000
 
 #Initial state
@@ -34,7 +36,7 @@ m = model(X=d.X)
 #Likelihood with observations and meas_unc
 like = norm(
     loc = d.y,
-    scale = 0.01*d.y
+    scale = scale_exp*d.y
     )
 
 #Function that is proportional to logp 
@@ -45,8 +47,6 @@ log_prob_fn = lambda theta: like.logpdf(
 #Stretch move just to avoid tuning 
 moves = emcee.moves.StretchMove()
 
-moves = emcee.moves.GaussianMove(cov=0.001**2)
-
 #A sampler 
 sampler = emcee.EnsembleSampler(
     nwalkers, 
@@ -54,6 +54,10 @@ sampler = emcee.EnsembleSampler(
     log_prob_fn, 
     moves=moves
     )
+
+
+#%%
+%%timeit 
 
 #Sample and save the end state
 state = sampler.run_mcmc(
@@ -76,7 +80,9 @@ chain = pd.DataFrame(
     )
 
 #Corner plot
-corner(chain)
+corner(chain.apply(np.exp))
+
+plt.savefig('vanilla-posterior.pdf')
 
 #Show plot
 plt.show()
@@ -90,7 +96,7 @@ print(
 
 #As well as mean
 print(
-      chain.std().values
+      chain.std()
       )
 
 #%%
@@ -101,7 +107,7 @@ l = np.linspace(0,400)
 #Propagate the chain
 preds = m.predict_exp(chain.values)
 
-preds_noise = preds + np.random.randn(*preds.shape)*d.y[:,None]*.01
+preds_noise = preds + np.random.randn(*preds.shape)*scale_exp
 
 #Calculate mean and std. deviations
 #Probably very small
@@ -136,6 +142,11 @@ plt.ylabel('Nu predicted')
 
 #Plot equality line
 plt.plot(l,l)
+
+#Title 
+plt.title('Vanilla Calibration')
+
+plt.savefig(f'vanilla_calibration_{scale_exp}.pdf')
 
 #Show the plot
 plt.show()

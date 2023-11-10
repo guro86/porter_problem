@@ -51,4 +51,14 @@ plt.plot(
     )
 
 plt.plot(l,l)
+
+
+#X and y labels
+plt.xlabel('Nu measured')
+plt.ylabel('Nu predicted')
+
+plt.title('Optimization')
+
+plt.savefig('optimization.pdf')
+
 plt.show()
